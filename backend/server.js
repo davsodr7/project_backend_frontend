@@ -7,27 +7,45 @@ app.use(express.json());
 app.use(cors());
 
 const db = mysql.createConnection({
-  host: 'mysql',
-  user: 'root',  // Troque com seu usuário do MySQL
-  password: '120202',  // Troque com sua senha do MySQL
-  database: 'cursos_db',
+  host: process.env.DB_HOST || 'mysql',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '120202',
+  database: process.env.DB_NAME || 'cursos_db',
+  port: process.env.DB_PORT || 3306,
+  connectTimeout: 10000,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-db.connect((err) => {
-  if (err) throw err;
-  console.log('Conectado ao banco de dados');
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS cursos (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      descricao VARCHAR(255) NOT NULL,
-      valor DECIMAL(10, 2) NOT NULL
-    )
-  `;
-  db.query(createTableQuery, (err) => {
-    if (err) throw err;
-    console.log('Tabela de cursos criada');
+// Função para tentar reconectar
+function handleDisconnect() {
+  db.connect((err) => {
+    if (err) {
+      console.error('Erro ao conectar ao banco de dados:', err);
+      setTimeout(handleDisconnect, 2000); // Tenta reconectar a cada 2 segundos
+    } else {
+      console.log('Conectado ao banco de dados');
+      const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS cursos (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          descricao VARCHAR(255) NOT NULL,
+          valor DECIMAL(10, 2) NOT NULL
+        )
+      `;
+      db.query(createTableQuery, (err) => {
+        if (err) {
+          console.error('Erro ao criar tabela:', err);
+        } else {
+          console.log('Tabela de cursos criada');
+        }
+      });
+    }
   });
-});
+}
+
+// Inicia a primeira tentativa de conexão
+handleDisconnect();
 
 app.get('/api/cursos', (req, res) => {
   const query = 'SELECT * FROM cursos';

@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Exponha a porta onde o app React vai rodar
-EXPOSE 3000
+EXPOSE 5173
 
 # Inicie o servidor
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev", "--", "--host"]
